@@ -120,3 +120,13 @@ You will use the cloudformation template file available in this github. This Clo
 * You can monitor the progress of Stack resources
 * Choose your stack
 * Click on **Events**, **Resources** & **Outputs** tabs
+ 
+ 
+ ## Lab2: Table design and query optimization
+If you have decided to choose option 1 for launching the cluster you will need to execute the scripts "schema_setup.sql"  and "table_load.sql" first. 
+
+**!!Note: the pre-requisite before proceeding.**
+
+For option 2 this is not needed.
+
+The "query_patterns_optimization.sql" script has queries that you can run one after another. There are few query patterns which are optimized progressively as you progress through the script.
