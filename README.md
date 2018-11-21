@@ -85,7 +85,7 @@ IMPORTANT: be sure to click to Autocommit box
 ## Option 2 (Restore cluster from snapshot)
 You will use the cloudformation template file available in this github. This Cloudformation template will create a VPC and create few more resources including the Redshift cluster in that VPC. 
 
-You will also need to have a copy of the Redshift snapshot in your AWS account. Please request access for the snapshot.
+**!! You will need to have a copy of the Redshift snapshot "rslab-ds2-xl-4n-final" in your AWS account. Please request access for the snapshot.!!**
 
 * Login to AWS console in the AWS account in which you want to onboard your cluster and switch to the correct region.
 * (Optional) Create new KMS Key or use existing "aws/redshift" KMS key. Copy KMS Key ID into your notepad.
