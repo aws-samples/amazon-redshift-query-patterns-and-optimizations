@@ -1,0 +1,1 @@
+SELECT ord.o_orderdate, ord.o_orderkey, ord.o_orderstatus, ord.o_totalprice FROM  demo_local.orders_mergekey ord WHERE o_orderpriority in ('1-URGENT', '2-HIGH') AND o_orderdate >= '1992-01-01' AND o_orderdate < '1992-02-01' limit 100 ;
