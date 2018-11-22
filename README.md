@@ -122,7 +122,7 @@ You will use the cloudformation template file available in this github. This Clo
 * Click on **Events**, **Resources** & **Outputs** tabs
  
  
- ## Lab2: Table design and query optimization
+ # Lab 2: Table design and query optimization
 If you have decided to choose option 1 for launching the cluster you will need to execute the scripts "schema_setup.sql"  and "table_load.sql" first. 
 
 **!!Note: the pre-requisite before proceeding.**
