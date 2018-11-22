@@ -1,0 +1,1 @@
+select c_nationkey, count(c_nationkey), sum(o_totalprice) from ( select cust.c_nationkey, ord.o_totalprice, median(o_totalprice) over( partition by c_mktsegment ) median_price from demo_local.orders_mergekey ord join demo_local.customer_base cust on ord.o_custkey = cust.c_custkey where c_mktsegment = 'HOUSEHOLD' ) where o_totalprice > median_price group by c_nationkey
