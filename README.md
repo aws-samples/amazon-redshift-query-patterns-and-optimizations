@@ -89,7 +89,7 @@ You will use the cloudformation template file available in this github. This Clo
 
 * Login to AWS console in the AWS account in which you want to onboard your cluster and switch to the correct region.
 * (Optional) Create new KMS Key or use existing "aws/redshift" KMS key. Copy KMS Key ID into your notepad.
-* Download the github cloudformation template file **redshift_vpc_glue.yaml** and save it in your local system.
+* Download the github cloudformation template file **[redshift_vpc_glue.yaml](https://github.com/aws-samples/amazon-redshift-query-patterns-and-optimizations/blob/master/.github/Cloudformation/redshift_vpc_glue.yml)** and save it in your local system.
 * Navigate to **CloudFormation > Stacks > Create stack** . In the **Create stack** page under **Specify template** section  select **Upload a template file** and then Choose file from your local system.
 * Click **Next**
 * Enter Stack name: *rsLab*
@@ -130,3 +130,173 @@ If you have decided to choose option 1 for launching the cluster you will need t
 For option 2 this is not needed.
 
 The "query_patterns_optimization.sql" script has queries that you can run one after another. There are few query patterns which are optimized progressively as you progress through the script.
+
+# Lab 3: WLM efficiency
+
+In this lab you will launch AWS resources to emulate concurrent query execution in the Amazon Redshift cluster you launched in lab 1. Using the launched infrastructure you will be able to tune the WLM setting according to your need.
+
+The following steps will create a AWS Step Function State Machine and a AWS Lambda function in your AWS account. The State Machine can be scheduled from AWS CloudWatch to launch concurrent queries- a mix of long and short running queries, in your Redshift cluster. After a few minutes of execution of the State Machine you can watch the Query Throughput and Query Duration metrics in the Database Performance dashboard. 
+
+## Setup
+
+Go to an s3 bucket in your account and create the following objects
+```
+<mybucket>/querylauncher/lambda-code/wlm/
+<mybucket>/querylauncher/scripts/long_query/
+<mybucket>/querylauncher/scripts/short_query/
+```
+
+* Login to AWS console in the AWS account where you have launched the Amazon Redshift cluster.
+* Download the github cloudformation template file **[RedshiftWLMLambdaLauncher.yaml](https://github.com/aws-samples/amazon-redshift-query-patterns-and-optimizations/blob/master/.github/Cloudformation/RedshiftWLMLambdaLauncher.yml)** and save it in your local system.
+* Navigate to **CloudFormation > Stacks > Create stack** . In the **Create stack** page under **Specify template** section  select **Upload a template file** and then Choose the RedshiftWLMLambdaLauncher.yaml file from your local system.
+* 	Click **Next** on the Select Template page.
+* 	Enter **Stack name** example *StepFnLambda*. 
+  * Enter the **S3Bucket** field where you have setup your s3 bucket that contains the Lambda code and SQL queries.
+  * Enter the **S3Key** fot the location in the above s3 bucket where you have placed the query_launcher.zip file. It should be querylauncher/lambda-code/wlm/query_launcher.zip
+  * Select the **SecurityGroups** from the dropdown. It should be starting as "rslab-SecurityGroup-".
+  * Select the **VPCSubnetIDs** as the Public Subnet 1 and 2 .
+Hit **Next**.
+
+```Note: The stack name you enter will appear as prefix of the AWS Lambda function name, IAM role for Lambda and Step Function State Machine that this template is going to create.```
+
+* 	Enter the **Key** = Owner and **Value** = Your_NAME. Expand Advanced and enable Termination Protection. Click **Next**.
+* 	Check the **I acknowledge that AWS CloudFormation might create IAM resources**." and click **Create**.
+* 	Monitor the progress of cluster launch from "Cloudformation" service navigation page. Successful completion of the stack will be marked with the status = "**CREATE_COMPLETE**".
+* 	At the end of successful execution of the stack four resources will get created which will be visible on Resources tab of the stack you just created. Click on the Physical ID of the resource of Type "AWS::StepFunctions::StateMachine". The Physical ID will look something like "*arn:aws:states:us-east-1:413094830157:stateMachine:LambdaStateMachine-BRcwDzke2wiW*".
+* You are in Step Functions window in the AWS Management Console due to the click in previous step. Click on **Edit**. In the State machine definition window replace the JSON string definition by below text. REMEMBER to change the **Resources** value to the Lambda Function ARN created using the stack. Hit **Save**.
+```
+{
+  "Comment": "An example of the Amazon States Language using a parallel state to execute many branches of Lambda function at the same time.",
+  "StartAt": "Parallel",
+  "States": {
+    "Parallel": {
+      "Type": "Parallel",
+      "Next": "Final State",
+      "Branches": [
+        {
+          "StartAt": "RandomQuery1",
+          "States": {
+            "RandomQuery1": {
+              "Type": "Task",
+              "Resource": "arn:aws:lambda:us-east-1:413094830157:function:StepFnLambda-FunctionAMI-5NK6PI1EAGRH",
+              "End": true
+            }
+          }
+        },
+        {
+          "StartAt": "RandomQuery2",
+          "States": {
+            "RandomQuery2": {
+              "Type": "Task",
+              "Resource": "arn:aws:lambda:us-east-1:413094830157:function:StepFnLambda-FunctionAMI-5NK6PI1EAGRH",
+              "End": true
+            }
+          }
+        },
+        {
+          "StartAt": "RandomQuery3",
+          "States": {
+            "RandomQuery3": {
+              "Type": "Task",
+              "Resource": "arn:aws:lambda:us-east-1:413094830157:function:StepFnLambda-FunctionAMI-5NK6PI1EAGRH",
+              "End": true
+            }
+          }
+        },
+        {
+          "StartAt": "RandomQuery4",
+          "States": {
+            "RandomQuery4": {
+              "Type": "Task",
+              "Resource": "arn:aws:lambda:us-east-1:413094830157:function:StepFnLambda-FunctionAMI-5NK6PI1EAGRH",
+              "End": true
+            }
+          }
+        },
+        {
+          "StartAt": "RandomQuery5",
+          "States": {
+            "RandomQuery5": {
+              "Type": "Task",
+              "Resource": "arn:aws:lambda:us-east-1:413094830157:function:StepFnLambda-FunctionAMI-5NK6PI1EAGRH",
+              "End": true
+            }
+          }
+        },
+        {
+          "StartAt": "RandomQuery6",
+          "States": {
+            "RandomQuery6": {
+              "Type": "Task",
+              "Resource": "arn:aws:lambda:us-east-1:413094830157:function:StepFnLambda-FunctionAMI-5NK6PI1EAGRH",
+              "End": true
+            }
+          }
+        },
+        {
+          "StartAt": "RandomQuery7",
+          "States": {
+            "RandomQuery7": {
+              "Type": "Task",
+              "Resource": "arn:aws:lambda:us-east-1:413094830157:function:StepFnLambda-FunctionAMI-5NK6PI1EAGRH",
+              "End": true
+            }
+          }
+        },
+        {
+          "StartAt": "RandomQuery8",
+          "States": {
+            "RandomQuery8": {
+              "Type": "Task",
+              "Resource": "arn:aws:lambda:us-east-1:413094830157:function:StepFnLambda-FunctionAMI-5NK6PI1EAGRH",
+              "End": true
+            }
+          }
+        },
+        {
+          "StartAt": "RandomQuery9",
+          "States": {
+            "RandomQuery9": {
+              "Type": "Task",
+              "Resource": "arn:aws:lambda:us-east-1:413094830157:function:StepFnLambda-FunctionAMI-5NK6PI1EAGRH",
+              "End": true
+            }
+          }
+        },
+        {
+          "StartAt": "RandomQuery10",
+          "States": {
+            "RandomQuery10": {
+              "Type": "Task",
+              "Resource": "arn:aws:lambda:us-east-1:413094830157:function:StepFnLambda-FunctionAMI-5NK6PI1EAGRH",
+              "End": true
+            }
+          }
+        },
+        {
+          "StartAt": "Pass",
+          "States": {
+            "Pass": {
+              "Type": "Pass",
+              "Next": "Wait 10s"
+            },
+            "Wait 10s": {
+              "Type": "Wait",
+              "Seconds": 10,
+              "End": true
+            }
+          }
+        }
+      ]
+    },
+    "Final State": {
+      "Type": "Pass",
+      "End": true
+    }
+  }
+}
+```
+## Modify the AWS Lambda function
+
+Navigate to the AWS Lambda function 
+
