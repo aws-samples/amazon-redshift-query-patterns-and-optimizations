@@ -89,7 +89,7 @@ You will use the cloudformation template file available in this github. This Clo
 
 * Login to AWS console in the AWS account in which you want to onboard your cluster and switch to the correct region.
 * (Optional) Create new KMS Key or use existing "aws/redshift" KMS key. Copy KMS Key ID into your notepad.
-* Download the github cloudformation template file **[redshift_vpc_glue.yaml](https://github.com/aws-samples/amazon-redshift-query-patterns-and-optimizations/blob/master/.github/Cloudformation/redshift_vpc_glue.yml)** and save it in your local system.
+* Download the github cloudformation template file **[redshift_vpc_glue.yaml](https://github.com/aws-samples/amazon-redshift-query-patterns-and-optimizations/blob/master/src/CloudFormation/redshift_vpc_glue.yml)** and save it in your local system.
 * Navigate to **CloudFormation > Stacks > Create stack** . In the **Create stack** page under **Specify template** section  select **Upload a template file** and then Choose file from your local system.
 * Click **Next**
 * Enter Stack name: *rsLab*
@@ -159,7 +159,7 @@ Once the above folders are created upload the following files from the github-
 Following steps will create AWS Step function State Machine and AWS Lambda function in your AWS account. The State machine will later will be scheduled in CloudWatch events as scheduled rule.
 
 * Login to AWS console in the AWS account where you have launched the Amazon Redshift cluster.
-* Download the github cloudformation template file **[RedshiftWLMLambdaLauncher.yaml](https://github.com/aws-samples/amazon-redshift-query-patterns-and-optimizations/blob/master/.github/Cloudformation/RedshiftWLMLambdaLauncher.yml)** and save it in your local system.
+* Download the github cloudformation template file **[RedshiftWLMLambdaLauncher.yaml](https://github.com/aws-samples/amazon-redshift-query-patterns-and-optimizations/blob/master/src/CloudFormation/RedshiftWLMLambdaLauncher.yml)** and save it in your local system.
 * Navigate to **CloudFormation > Stacks > Create stack** . In the **Create stack** page under **Specify template** section  select **Upload a template file** and then Choose the RedshiftWLMLambdaLauncher.yaml file from your local system.
 * 	Click **Next** on the Select Template page.
 * 	Enter **Stack name** example *StepFnLambda*. 
