@@ -1,1 +1,0 @@
-SELECT ord.o_orderstatus, SUM(ord.o_totalprice) AS total_price FROM  demo_local.orders_mergekey ord WHERE o_orderpriority in ('1-URGENT', '2-HIGH') AND o_orderdate >= date '1992-01-01' AND o_orderdate < date '1993-01-01' + interval '1' year GROUP BY  ord.o_orderstatus;
