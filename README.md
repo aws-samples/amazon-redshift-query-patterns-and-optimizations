@@ -85,7 +85,7 @@ IMPORTANT: be sure to click to Autocommit box
 ## Option 2 (Restore cluster from snapshot)
 You will use the cloudformation template file available in this github. This Cloudformation template will create a VPC and create few more resources including the Redshift cluster in that VPC. 
 
-**!! You will need to have a copy of the Redshift snapshot "rslab-ds2-xl-4n-final" in your AWS account. Please request access for the snapshot.!!**
+**!! You will need to have a copy of the Redshift snapshot "rslab-ds2-xl-4n" in your AWS account. Please request access for the snapshot.!!**
 
 * Login to AWS console in the AWS account in which you want to onboard your cluster and switch to the correct region.
 * (Optional) Create new KMS Key or use existing "aws/redshift" KMS key. Copy KMS Key ID into your notepad.
@@ -139,7 +139,7 @@ The following steps will create a AWS Step Function State Machine and a AWS Lamb
 
 ## Setup
 
-Go to an s3 bucket in your account and create the following folders. You will need to the s3 bucket name for creating CloudFormation schedule based event.
+Go to an s3 bucket in your account and create the following folders. You will need to the s3 bucket name for creating CloudWatch schedule based event.
 
 ```
 <mybucket>/querylauncher/lambda-code/wlm/
@@ -154,6 +154,9 @@ Once the above folders are created upload the following files from the github-
 <mybucket>/querylauncher/scripts/short_query/ --> https://github.com/aws-samples/amazon-redshift-query-patterns-and-optimizations/tree/master/sql_scripts/short_query
  
 <mybucket>/querylauncher/lambda-code/wlm/     --> https://github.com/aws-samples/amazon-redshift-query-patterns-and-optimizations/blob/master/src/Lambda/query_launcher.zip
+
+## Create Query Launcher
+Following steps will create AWS Step function State Machine and AWS Lambda function in your AWS account. The State machine will later will be scheduled in CloudWatch events as scheduled rule.
 
 * Login to AWS console in the AWS account where you have launched the Amazon Redshift cluster.
 * Download the github cloudformation template file **[RedshiftWLMLambdaLauncher.yaml](https://github.com/aws-samples/amazon-redshift-query-patterns-and-optimizations/blob/master/.github/Cloudformation/RedshiftWLMLambdaLauncher.yml)** and save it in your local system.
@@ -173,5 +176,23 @@ Hit **Next**.
 * 	Monitor the progress of cluster launch from "Cloudformation" service navigation page. Successful completion of the stack will be marked with the status = "**CREATE_COMPLETE**".
 * 	At the end of successful execution of the stack four resources will get created which will be visible on Resources tab of the stack you just created. Click on the Physical ID of the resource of Type "AWS::StepFunctions::StateMachine". The Physical ID will look something like "*arn:aws:states:us-east-1:413094830157:stateMachine:LambdaStateMachine-BRcwDzke2wiW*".
 
+## Schedule Query Launcher
 
+Now you have the State machine is ready in your AWS account. You will need to schedule this state machine in regular interval so that it can launch concurrent queries in your Redshift cluster.
 
+* Login to AWS console in the AWS account and go to "**Cloudwatch**" service.
+* From the left navigation Click on **Rules** under **Events**. And then click on **Create rule**.
+* Select **Schedule** as Event Source and make sure **Fixed rate of 5 Minutes** is set.
+* Click on **Add Target** > **Step Functions state machine**. Select the state machine that starts with *LambdaStateMachine-*. Expand **Configure input** > **Constant (JSON text)**. In the text box enter below JSON text with the relevant value of your s3 bucket and Redshift cluster Host. Change the password.
+```JSON
+{
+  "S3Bucket": "bigdatalabsaunak",
+  "Host": "rslab-redshiftcluster-17qvgq9ynjs8q.csdiadofcvnr.us-east-1.redshift.amazonaws.com",
+  "Port": 8192,
+  "Database": "awspsars",
+  "Password": "Welcome123",
+  "User": "labuser"
+}
+```
+* Choose **Use existing role** and select the role created by the query launcher which should start with name "*StepFnLambda-StatesMachineExecutionRole-*". 
+* Hit Configure details. Give a Name and Description.
