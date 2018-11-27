@@ -266,7 +266,7 @@ ALTER TABLE  "spectrum"."lineitem_parq_part_1"
 ADD PARTITION(saledate='1992-01-03') 
 LOCATION 's3://awspsa-redshift-lab/lineitem_partition/l_shipdate=1992-01-03/';
 ```
-#### List partitions of table
+#### List the partitions of the table
 
 ```sql
 SELECT schemaname, tablename, values, location 
@@ -375,7 +375,7 @@ The S3 HashAggregate node indicates aggregation in the Redshift Spectrum layer f
 ## Performance comparison between CSV, PARQUET and partitioned data
 ### Create CSV Table:
 ```sql
-CREATE external table "spectrum_<Your-AWS-IAM-User>"."lineitem_csv" 
+CREATE external table "spectrum"."lineitem_csv" 
 ( 
  L_ORDERKEY BIGINT,
  L_PARTKEY INT,
