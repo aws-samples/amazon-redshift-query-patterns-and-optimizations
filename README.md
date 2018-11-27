@@ -196,3 +196,172 @@ Now you have the State machine is ready in your AWS account. You will need to sc
 ```
 * Choose **Use existing role** and select the role created by the query launcher which should start with name "*StepFnLambda-StatesMachineExecutionRole-*". 
 * Hit Configure details. Give a Name and Description.
+
+
+# Lab 4: Spectrum
+
+In this lab you will setup Redshift external schema and query external tables. You will also gain knowledge on some query patterns to optimize Redshift Spectrum.
+
+## Create an external schema and external tables
+
+You can run the below SQLs as-is by replacing with your AWS account number.
+* \<Your-AWS-Account-Number\>: Replace with your AWS account number.
+
+### Create external schema and catalog database
+```sql
+DROP SCHEMA IF EXISTS "spectrum";
+CREATE EXTERNAL SCHEMA "spectrum" 
+FROM DATA CATALOG 
+DATABASE 'spectrumdb' 
+iam_role 'arn:aws:iam::<Your-AWS-Account-Number>:role/rsLabGroupPolicy-SpectrumRole'
+CREATE EXTERNAL DATABASE IF NOT EXISTS;
+```
+### Create external table (non-partitioned)
+```sql
+CREATE external table "spectrum"."suppliers_ext_parq" ( 
+ s_suppkey BIGINT,
+ s_name VARCHAR(128),
+ s_address VARCHAR(128),
+ s_nationkey BIGINT,
+ s_phone VARCHAR(128),
+ s_acctbal  DECIMAL(12,2),
+ s_comment VARCHAR(128)
+)
+STORED AS PARQUET
+LOCATION 's3://awspsa-redshift-lab/supplier/';
+```
+### Create partitioned table
+The datafiles in s3 are in PARQUET format and Partitioned on L_SHIPDATE
+
+```sql
+CREATE EXTERNAL table "spectrum"."lineitem_parq_part_1" ( 
+ L_ORDERKEY BIGINT,
+ L_PARTKEY BIGINT,
+ L_SUPPKEY BIGINT,
+ L_LINENUMBER INT,
+ L_QUANTITY DECIMAL(12,2),
+ L_EXTENDEDPRICE DECIMAL(12,2),
+ L_DISCOUNT DECIMAL(12,2),
+ L_TAX DECIMAL(12,2),
+ L_RETURNFLAG VARCHAR(128),
+ L_LINESTATUS VARCHAR(128),
+ L_COMMITDATE VARCHAR(128),
+ L_RECEIPTDATE VARCHAR(128),
+ L_SHIPINSTRUCT VARCHAR(128),
+ L_SHIPMODE VARCHAR(128),
+ L_COMMENT VARCHAR(128))
+PARTITIONED BY (L_SHIPDATE VARCHAR(128))
+STORED as PARQUET
+LOCATION 's3://awspsa-redshift-lab/lineitem_partition/';
+```
+
+#### Add partitions in the table
+
+```sql
+ALTER TABLE  "spectrum"."lineitem_parq_part_1" 
+ADD PARTITION(saledate='1992-01-02') 
+LOCATION 's3://awspsa-redshift-lab/lineitem_partition/l_shipdate=1992-01-02/';
+
+ALTER TABLE  "spectrum"."lineitem_parq_part_1" 
+ADD PARTITION(saledate='1992-01-03') 
+LOCATION 's3://awspsa-redshift-lab/lineitem_partition/l_shipdate=1992-01-03/';
+```
+#### List partitions of table
+
+```sql
+SELECT schemaname, tablename, values, location 
+FROM svv_external_partitions
+WHERE tablename = 'lineitem_parq_part_1' and schemaname='spectrum'
+```
+
+## Query external tables
+After your external table is created, you can query using the same SELECT statement that you use to query other regular Amazon Redshift tables.  The SELECT statement queries can include joining tables, aggregating data, and filtering on predicates
+
+```sql
+SELECT s_nationkey, count(*)
+FROM "spectrum"."suppliers_ext_parq"
+WHERE s_nationkey in (10,15,20) and s_acctbal > 1000
+GROUP BY s_nationkey;
+
+SELECT MIN(L_SHIPDATE), MAX(L_SHIPDATE), count(*)
+FROM "spectrum"."lineitem_parq_part_1";
+```
+
+### How to check whether "[partition-pruning](https://aws.amazon.com/blogs/big-data/10-best-practices-for-amazon-redshift-spectrum/)" is in effect?
+You can use the following SQL to analyze the effectiveness of partition pruning. If the query touches only a few partitions, you can verify if everything behaves as expected:
+```SELECT query, segment,
+       MIN(starttime) AS starttime,
+       MAX(endtime) AS endtime,
+       datediff(ms,MIN(starttime),MAX(endtime)) AS dur_ms,
+       MAX(total_partitions) AS total_partitions,
+       MAX(qualified_partitions) AS qualified_partitions,
+       MAX(assignment) as assignment_type
+FROM svl_s3partition
+WHERE query=pg_last_query_id()
+GROUP BY query, segment;
+```
+### Join Redshift local table with external table
+As a best practice, keep your larger fact tables in Amazon S3 and your smaller dimension tables in Amazon Redshift.  Let’s see how that works.
+
+#### Create the EVENT table by using the following command
+```sql
+CREATE TABLE event(
+eventid integer not null distkey,
+venueid smallint not null,
+catid smallint not null,
+dateid smallint not null sortkey,
+eventname varchar(200),
+starttime timestamp
+);
+```
+#### Load the EVENT table by replacing your AWS account number
+
+```sql
+copy event from 's3://awssampledbuswest2/tickit/allevents_pipe.txt' 
+iam_role 'arn:aws:iam::<Your-AWS-Account-Number>:role/rsLabGroupPolicy-SpectrumRole'
+delimiter '|' timeformat 'YYYY-MM-DD HH:MI:SS' region 'us-west-2';
+```
+#### Create External table SALES in Data Catalog.
+```sql
+create external table "spectrum"."sales"(
+salesid integer,
+listid integer,
+sellerid integer,
+buyerid integer,
+eventid integer,
+dateid smallint,
+qtysold smallint,
+pricepaid decimal(8,2),
+commission decimal(8,2),
+saletime timestamp
+)
+row format delimited
+fields terminated by '\t'
+stored as textfile
+location 's3://awspsa-redshift-lab/sales/'
+table properties ('numRows'='172000');
+```
+
+Below query is example of joining the external table SPECTRUM.SALES with the physically loaded local table – EVENT to find the total sales for the top ten events.
+```sql
+SELECT top 10 sales.eventid, sum(sales.pricepaid) 
+FROM "spectrum"."sales" sales, event
+WHERE sales.eventid = event.eventid
+AND sales.pricepaid > 30
+GROUP BY sales.eventid
+ORDER BY 2 desc;
+```
+
+### Execution Plan of JOIN-ed SQL
+View the query plan for the previous query. Note the *S3 Seq Scan*, *S3 HashAggregate*, and *S3 Query Scan* steps that were executed against the data on Amazon S3.
+Look at the query plan to find what steps have been pushed to the Amazon Redshift Spectrum layer.
+
+```sql
+EXPLAIN
+SELECT top 10 sales.eventid, sum(sales.pricepaid) 
+FROM "spectrum_<Your-AWS-IAM-User>"."sales" sales, public.event
+WHERE sales.eventid = event.eventid
+AND sales.pricepaid > 30
+GROUP BY sales.eventid
+ORDER BY 2 DESC;
+```
