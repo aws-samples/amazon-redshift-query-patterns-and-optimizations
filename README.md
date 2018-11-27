@@ -186,7 +186,7 @@ Now you have the State machine is ready in your AWS account. You will need to sc
 * Click on **Add Target** > **Step Functions state machine**. Select the state machine that starts with *LambdaStateMachine-*. Expand **Configure input** > **Constant (JSON text)**. In the text box enter below JSON text with the relevant value of your s3 bucket and Redshift cluster Host. Change the password.
 ```JSON
 {
-  "S3Bucket": "bigdatalabsaunak",
+  "S3Bucket": "awspsalab",
   "Host": "rslab-redshiftcluster-17qvgq9ynjs8q.csdiadofcvnr.us-east-1.redshift.amazonaws.com",
   "Port": 8192,
   "Database": "awspsars",
