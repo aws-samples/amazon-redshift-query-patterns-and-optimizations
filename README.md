@@ -123,13 +123,13 @@ You will use the cloudformation template file available in this github. This Clo
  
  
  # Lab 2: Table design and query optimization
-If you have decided to choose option 1 for launching the cluster you will need to execute the scripts "schema_setup.sql"  and "table_load.sql" first. 
+If you have decided to choose option 1 for launching the cluster you will need to execute the scripts [schema_setup.sql](https://github.com/aws-samples/amazon-redshift-query-patterns-and-optimizations/blob/master/sql_scripts/schema_setup.sql)  and [table_load.sql](https://github.com/aws-samples/amazon-redshift-query-patterns-and-optimizations/blob/master/sql_scripts/table_load.sql) first. 
 
-**!!Note: the pre-requisite before proceeding.**
+**!!Note: the pre-requisite in the script files table_load.sql before proceeding.**
 
 For option 2 this is not needed.
 
-The "query_patterns_optimization.sql" script has queries that you can run one after another. There are few query patterns which are optimized progressively as you progress through the script.
+The [query_patterns_optimization.sql](https://github.com/aws-samples/amazon-redshift-query-patterns-and-optimizations/blob/master/sql_scripts/query_patterns_optimization.sql) script has queries that you can run one after another. There are few query patterns which are optimized progressively as you progress through the script.
 
 # Lab 3: WLM efficiency
 
