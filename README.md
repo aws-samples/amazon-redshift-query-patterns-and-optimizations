@@ -359,9 +359,167 @@ Look at the query plan to find what steps have been pushed to the Amazon Redshif
 ```sql
 EXPLAIN
 SELECT top 10 sales.eventid, sum(sales.pricepaid) 
-FROM "spectrum_<Your-AWS-IAM-User>"."sales" sales, public.event
+FROM "spectrum"."sales" sales, public.event
 WHERE sales.eventid = event.eventid
 AND sales.pricepaid > 30
 GROUP BY sales.eventid
 ORDER BY 2 DESC;
 ```
+Observations:
+--
+
+The S3 Seq Scan node shows the filter pricepaid > 30.00 was processed in the Redshift Spectrum layer.
+A filter node under the XN S3 Query Scan node indicates predicate processing in Amazon Redshift on top of the data returned from the Redshift Spectrum layer.
+The S3 HashAggregate node indicates aggregation in the Redshift Spectrum layer for the group by clause (group by spectrum.sales.eventid).
+
+## Performance comparison between CSV, PARQUET and partitioned data
+### Create CSV Table:
+```sql
+CREATE external table "spectrum_<Your-AWS-IAM-User>"."lineitem_csv" 
+( 
+ L_ORDERKEY BIGINT,
+ L_PARTKEY INT,
+ L_SUPPKEY INT,
+ L_LINENUMBER INT,
+ L_QUANTITY DECIMAL(12,2),
+ L_EXTENDEDPRICE DECIMAL(12,2),
+ L_DISCOUNT DECIMAL(12,2),
+ L_TAX DECIMAL(12,2),
+ L_RETURNFLAG VARCHAR(128),
+ L_LINESTATUS VARCHAR(128),
+ L_SHIPDATE VARCHAR(128) ,
+ L_COMMITDATE VARCHAR(128),
+ L_RECEIPTDATE VARCHAR(128),
+ L_SHIPINSTRUCT VARCHAR(128),
+ L_SHIPMODE VARCHAR(128),
+ L_COMMENT VARCHAR(128)
+)
+row format delimited
+fields terminated by '|'
+stored as textfile
+LOCATION 's3://awspsa-redshift-lab/lineitem_csv/'
+;
+```
+### Create Parquet format table
+```sql
+CREATE external table "spectrum"."lineitem_parq" 
+( 
+ L_ORDERKEY BIGINT,
+ L_PARTKEY BIGINT,
+ L_SUPPKEY BIGINT,
+ L_LINENUMBER INT,
+ L_QUANTITY DECIMAL(12,2),
+ L_EXTENDEDPRICE DECIMAL(12,2),
+ L_DISCOUNT DECIMAL(12,2),
+ L_TAX DECIMAL(12,2),
+ L_RETURNFLAG VARCHAR(128),
+ L_LINESTATUS VARCHAR(128),
+ L_SHIPDATE VARCHAR(128),
+ L_COMMITDATE VARCHAR(128),
+ L_RECEIPTDATE VARCHAR(128),
+ L_SHIPINSTRUCT VARCHAR(128),
+ L_SHIPMODE VARCHAR(128),
+ L_COMMENT VARCHAR(128)
+)
+stored as PARQUET
+LOCATION 's3://awspsa-redshift-lab/lineitem_parq2/'
+;
+```
+
+### Create Parquet format Partitioned table
+```sql
+CREATE external table "spectrum"."lineitem_parq_part" 
+( 
+ L_ORDERKEY BIGINT,
+ L_PARTKEY BIGINT,
+ L_SUPPKEY BIGINT,
+ L_LINENUMBER INT,
+ L_QUANTITY DECIMAL(12,2),
+ L_EXTENDEDPRICE DECIMAL(12,2),
+ L_DISCOUNT DECIMAL(12,2),
+ L_TAX DECIMAL(12,2),
+ L_RETURNFLAG VARCHAR(128),
+ L_LINESTATUS VARCHAR(128),
+ L_COMMITDATE VARCHAR(128),
+ L_RECEIPTDATE VARCHAR(128),
+ L_SHIPINSTRUCT VARCHAR(128),
+ L_SHIPMODE VARCHAR(128),
+ L_COMMENT VARCHAR(128)
+)
+partitioned by (L_SHIPDATE VARCHAR(128))
+stored as PARQUET
+LOCATION 's3://awspsa-redshift-lab/lineitem_partition/'
+;
+```
+
+### Run query on CSV table
+```sql
+SELECT MIN(L_SHIPDATE), MAX(L_SHIPDATE), count(*)
+FROM "spectrum"."lineitem_csv";
+```
+
+### Run query on Parquet table
+```sql
+SELECT MIN(L_SHIPDATE), MAX(L_SHIPDATE), count(*)
+FROM "spectrum"."lineitem_parq";
+```
+Verify rows & bytes returned and execution time of SQL. Get the Query ID from Redshift console or STV_RECENTS.
+
+```sql
+SELECT QUERY, 
+SEGMENT, 
+SLICE, 
+DATEDIFF(MS,MIN(STARTTIME),MAX(ENDTIME)) AS DUR_MS, 
+S3_SCANNED_ROWS, 
+S3_SCANNED_BYTES, 
+S3QUERY_RETURNED_ROWS, 
+S3QUERY_RETURNED_BYTES, FILES
+FROM SVL_S3QUERY 
+WHERE query=pg_last_query_id()
+--QUERY IN (52601, 52603) 
+GROUP BY QUERY, SEGMENT, SLICE, S3_SCANNED_ROWS, S3_SCANNED_BYTES, S3QUERY_RETURNED_ROWS, S3QUERY_RETURNED_BYTES, FILES ORDER BY QUERY, SEGMENT, SLICE;
+```
+Observations:
+--
+Execution time (column dur_ms) for querying parquet data is significantly lower than CSV.
+
+## Predicate pushdown to Spectrum layer improves query performance
+### Example 1: DISTINCT vs GROUP BY (Avoid using DISTINCT for Spectrum table)
+```sql
+EXPLAIN 
+SELECT DISTINCT l_returnflag, 
+l_linestatus 
+FROM 	"spectrum"."lineitem_parq"
+WHERE EXTRACT(YEAR from l_shipdate::DATE) BETWEEN '1995' AND  '1998' 
+ORDER BY l_returnflag, l_linestatus
+;
+```
+```sql
+EXPLAIN 
+SELECT l_returnflag,
+l_linestatus 
+FROM 	"spectrum"."lineitem_parq"
+WHERE EXTRACT(YEAR from l_shipdate::DATE) BETWEEN '1995' AND  '1998' 
+GROUP BY l_returnflag, l_linestatus 
+ORDER BY l_returnflag, l_linestatus
+;
+```
+
+Observations:
+--
+It turns out that there is no pushdown in the first query (because of DISTINCT). Instead, a large number of rows are returned to Amazon Redshift to be sorted and de-duped. In the second query, S3 HashAggregate is pushed to Redshift Spectrum, where most of the heavy lifting and aggregation is done. Querying against SVL_S3QUERY_SUMMARY confirms the explain plan differences:
+The lesson learned is that you should replace “DISTINCT” with “GROUP BY” in your SQL statements wherever possible
+
+### Example 2: (Use of DATE function which can’t be push down) 
+Perform a quick test using the following two queries, you would notice a huge performance difference between these two queries:
+```sql
+SELECT MIN(L_SHIPDATE), MAX(L_SHIPDATE), count(*)
+FROM "spectrum"."lineitem_parq";
+
+SELECT MIN(DATE(L_SHIPDATE)), MAX(DATE(L_SHIPDATE)), count(*)
+FROM "spectrum"."lineitem_parq";
+```
+Observation: 
+--
+In the first query’s explain plan, S3 Aggregate is being pushed down to the Amazon Redshift Spectrum layer, and only the aggregated results are returned to Amazon Redshift for final processing.
+On the other hand, if you take a close look at the second query’s explain plan, you would notice that there is no S3 aggregate in the Amazon Redshift Spectrum layer because Amazon Redshift Spectrum doesn’t support DATE as a regular data type or the DATE transform function. As a result, this query is forced to bring back a huge amount of data from S3 into Amazon Redshift to transform and process.
