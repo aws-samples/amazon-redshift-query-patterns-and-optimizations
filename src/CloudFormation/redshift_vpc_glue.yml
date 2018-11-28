@@ -572,7 +572,7 @@ Resources:
         - ParameterName: require_ssl
           ParameterValue: 'true'
         - ParameterName: "wlm_json_configuration"
-          ParameterValue: "[{\"user_group\":[\"etlusers\"],\"query_group\":[\"biextract\"],\"query_concurrency\":5,\"max_execution_time\":1800000,\"memory_percent_to_use\":40},{\"user_group\":[\"ro_users\"],\"query_concurrency\":10,\"max_execution_time\":120000,\"memory_percent_to_use\":30},{\"query_concurrency\":5,\"max_execution_time\":300000,\"memory_percent_to_use\":30}]"
+          ParameterValue: "[{\"user_group\":[\"etlusers\"],\"query_group\":[\"biextract\"],\"query_concurrency\":5,\"max_execution_time\":1800000,\"memory_percent_to_use\":40},{\"user_group\":[\"rousers\"],\"query_concurrency\":10,\"max_execution_time\":120000,\"memory_percent_to_use\":30},{\"query_concurrency\":5,\"max_execution_time\":300000,\"memory_percent_to_use\":30}]"
       Tags:
         -
           Key: Name
