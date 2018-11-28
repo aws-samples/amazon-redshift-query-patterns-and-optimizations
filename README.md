@@ -484,8 +484,9 @@ WHERE query=pg_last_query_id()
 --QUERY IN (52601, 52603) 
 GROUP BY QUERY, SEGMENT, SLICE, S3_SCANNED_ROWS, S3_SCANNED_BYTES, S3QUERY_RETURNED_ROWS, S3QUERY_RETURNED_BYTES, FILES ORDER BY QUERY, SEGMENT, SLICE;
 ```
-Observations:
---
+
+#### Observations:
+
 Execution time (column dur_ms) for querying parquet data is significantly lower than CSV.
 
 
