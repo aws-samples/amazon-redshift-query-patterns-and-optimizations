@@ -534,8 +534,7 @@ AND sales.pricepaid > 30
 GROUP BY sales.eventid
 ORDER BY 2 DESC;
 ```
-Observations:
---
+#### Observations:
 
 The S3 Seq Scan node shows the filter pricepaid > 30.00 was processed in the Redshift Spectrum layer.
 A filter node under the XN S3 Query Scan node indicates predicate processing in Amazon Redshift on top of the data returned from the Redshift Spectrum layer.
@@ -681,7 +680,7 @@ ORDER BY l_returnflag, l_linestatus
 ```
 
 #### Observations:
---
+
 It turns out that there is no pushdown in the first query (because of DISTINCT). Instead, a large number of rows are returned to Amazon Redshift to be sorted and de-duped. In the second query, S3 HashAggregate is pushed to Redshift Spectrum, where most of the heavy lifting and aggregation is done. Querying against SVL_S3QUERY_SUMMARY confirms the explain plan differences:
 The lesson learned is that you should replace “DISTINCT” with “GROUP BY” in your SQL statements wherever possible
 
