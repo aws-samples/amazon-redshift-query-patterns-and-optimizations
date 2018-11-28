@@ -282,7 +282,7 @@ group by c_nationkey
 limit 10;
 ```
 
-# Lab 3: WLM efficiency
+# Lab 3: WLM Optimization
 
 In this lab you will launch AWS resources to emulate concurrent query execution in the Amazon Redshift cluster you launched in lab 1. Using the launched infrastructure you will be able to tune the WLM setting according to your need.
 
@@ -348,6 +348,12 @@ Now you have the State machine is ready in your AWS account. You will need to sc
 * Choose **Use existing role** and select the role created by the query launcher which should start with name "*StepFnLambda-StatesMachineExecutionRole-*". 
 * Hit Configure details. Give a Name and Description.
 
+## WLM dive deep
+
+Once the Query Launcher is scheduled let it run for at least half an hour. Come back to the AWS Management console and select the Amazon Redshift service.
+
+### Check Advisor
+While in Redshift - AWS Console select **Advisor** from the left navigation and select the cluster you want to check. Look for any recommendation provided in Advisor. Configure your WLM according to the recommended steps.
 
 # Lab 4: Redshift Spectrum
 
