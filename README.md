@@ -348,12 +348,21 @@ Now you have the State machine is ready in your AWS account. You will need to sc
 * Choose **Use existing role** and select the role created by the query launcher which should start with name "*StepFnLambda-StatesMachineExecutionRole-*". 
 * Hit Configure details. Give a Name and Description.
 
-## WLM dive deep
+## WLM deep dive
 
 Once the Query Launcher is scheduled let it run for at least half an hour. Come back to the AWS Management console and select the Amazon Redshift service.
 
 ### Check Advisor
 While in Redshift - AWS Console select **Advisor** from the left navigation and select the cluster you want to check. Look for any recommendation provided in Advisor. Configure your WLM according to the recommended steps.
+
+### Check Database Performance
+In the edshift - AWS Console select **Clusters** and the click on your cluster. Go to Database Performance tab. Change the **Period** to 1 minute. Take a look at the various query Workload Execution Breakdown.
+
+Next check **Query Throughput**. Make a note of throughputs for Short, Medium and Long queries. However this is not the place where you get fine grained queue information.
+
+Move on to **Query Throughput by WLM Queues**. You may observe the the Throughput lines are overlapping each other for each queue. This is due to the Query Launcher launching queries in each queue from a list of 3 queries per queue. Due to randomness in the process of picking up queries from the list sometimes the Queue 2 is better throughput and sometimes Queue 3 is better.
+
+Next check the Query **Duration by WLM Queues**. Queue 2 duration are irrelvant. Queue 3 duration can be improved by changing the concurrency of the WLM to 5.
 
 # Lab 4: Redshift Spectrum
 
