@@ -135,7 +135,7 @@ Parameters:
      Must contain only alphanumeric characters. Example: Welcome123
     
   S3BucketForSpectrum:
-        Default: sudhig-tph-1000-data
+        Default: awspsa-redshift-lab
         Type: String
         Description: Enter existing S3 Bucket contains data files for Redshift Spectrum
         
