@@ -155,7 +155,7 @@ Once the above folders are created upload the following files from the github-
  
 <mybucket>/querylauncher/lambda-code/wlm/     --> https://github.com/aws-samples/amazon-redshift-query-patterns-and-optimizations/blob/master/src/Lambda/query_launcher.zip
 
-## Create Query Launcher
+## Install Query Launcher
 Following steps will create AWS Step function State Machine and AWS Lambda function in your AWS account. The State machine will later will be scheduled in CloudWatch events as scheduled rule.
 
 * Login to AWS console in the AWS account where you have launched the Amazon Redshift cluster.
@@ -198,7 +198,7 @@ Now you have the State machine is ready in your AWS account. You will need to sc
 * Hit Configure details. Give a Name and Description.
 
 
-# Lab 4: Spectrum
+# Lab 4: Redshift Spectrum
 
 In this lab you will setup Redshift external schema and query external tables. You will also gain knowledge on some query patterns to optimize Redshift Spectrum.
 
@@ -273,6 +273,8 @@ SELECT schemaname, tablename, values, location
 FROM svv_external_partitions
 WHERE tablename = 'lineitem_parq_part_1' and schemaname='spectrum'
 ```
+
+
 
 ## Query external tables
 After your external table is created, you can query using the same SELECT statement that you use to query other regular Amazon Redshift tables.  The SELECT statement queries can include joining tables, aggregating data, and filtering on predicates
@@ -372,7 +374,10 @@ The S3 Seq Scan node shows the filter pricepaid > 30.00 was processed in the Red
 A filter node under the XN S3 Query Scan node indicates predicate processing in Amazon Redshift on top of the data returned from the Redshift Spectrum layer.
 The S3 HashAggregate node indicates aggregation in the Redshift Spectrum layer for the group by clause (group by spectrum.sales.eventid).
 
+
+
 ## Performance comparison between CSV, PARQUET and partitioned data
+
 ### Create CSV Table:
 ```sql
 CREATE external table "spectrum"."lineitem_csv" 
@@ -483,6 +488,8 @@ Observations:
 --
 Execution time (column dur_ms) for querying parquet data is significantly lower than CSV.
 
+
+
 ## Predicate pushdown to Spectrum layer improves query performance
 ### Example 1: DISTINCT vs GROUP BY (Avoid using DISTINCT for Spectrum table)
 ```sql
@@ -505,7 +512,7 @@ ORDER BY l_returnflag, l_linestatus
 ;
 ```
 
-Observations:
+#### Observations:
 --
 It turns out that there is no pushdown in the first query (because of DISTINCT). Instead, a large number of rows are returned to Amazon Redshift to be sorted and de-duped. In the second query, S3 HashAggregate is pushed to Redshift Spectrum, where most of the heavy lifting and aggregation is done. Querying against SVL_S3QUERY_SUMMARY confirms the explain plan differences:
 The lesson learned is that you should replace “DISTINCT” with “GROUP BY” in your SQL statements wherever possible
@@ -519,7 +526,7 @@ FROM "spectrum"."lineitem_parq";
 SELECT MIN(DATE(L_SHIPDATE)), MAX(DATE(L_SHIPDATE)), count(*)
 FROM "spectrum"."lineitem_parq";
 ```
-Observation: 
---
+#### Observations: 
+
 In the first query’s explain plan, S3 Aggregate is being pushed down to the Amazon Redshift Spectrum layer, and only the aggregated results are returned to Amazon Redshift for final processing.
 On the other hand, if you take a close look at the second query’s explain plan, you would notice that there is no S3 aggregate in the Amazon Redshift Spectrum layer because Amazon Redshift Spectrum doesn’t support DATE as a regular data type or the DATE transform function. As a result, this query is forced to bring back a huge amount of data from S3 into Amazon Redshift to transform and process.
