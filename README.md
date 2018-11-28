@@ -486,9 +486,9 @@ starttime timestamp
 #### Load the EVENT table by replacing your AWS account number
 
 ```sql
-copy event from 's3://awssampledbuswest2/tickit/allevents_pipe.txt' 
+copy event from 's3://awspsa-redshift-lab/labdata/events/' 
 iam_role 'arn:aws:iam::<Your-AWS-Account-Number>:role/rslab-SpectrumRole'
-delimiter '|' timeformat 'YYYY-MM-DD HH:MI:SS' region 'us-west-2';
+delimiter '|' timeformat 'YYYY-MM-DD HH:MI:SS';
 ```
 #### Create External table SALES in Data Catalog.
 ```sql
