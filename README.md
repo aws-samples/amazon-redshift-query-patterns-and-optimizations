@@ -379,7 +379,7 @@ DROP SCHEMA IF EXISTS "spectrum";
 CREATE EXTERNAL SCHEMA "spectrum" 
 FROM DATA CATALOG 
 DATABASE 'spectrumdb' 
-iam_role 'arn:aws:iam::<Your-AWS-Account-Number>:role/rsLabGroupPolicy-SpectrumRole'
+iam_role 'arn:aws:iam::<Your-AWS-Account-Number>:role/rslab-SpectrumRole'
 CREATE EXTERNAL DATABASE IF NOT EXISTS;
 ```
 ### Create external table (non-partitioned)
@@ -394,7 +394,7 @@ CREATE external table "spectrum"."suppliers_ext_parq" (
  s_comment VARCHAR(128)
 )
 STORED AS PARQUET
-LOCATION 's3://awspsa-redshift-lab/supplier/';
+LOCATION 's3://awspsa-redshift-lab/labdata/supplier/';
 ```
 ### Create partitioned table
 The datafiles in s3 are in PARQUET format and Partitioned on L_SHIPDATE
@@ -418,7 +418,7 @@ CREATE EXTERNAL table "spectrum"."lineitem_parq_part_1" (
  L_COMMENT VARCHAR(128))
 PARTITIONED BY (L_SHIPDATE VARCHAR(128))
 STORED as PARQUET
-LOCATION 's3://awspsa-redshift-lab/lineitem_partition/';
+LOCATION 's3://awspsa-redshift-lab/labdata/lineitem_partition/';
 ```
 
 #### Add partitions in the table
@@ -426,11 +426,11 @@ LOCATION 's3://awspsa-redshift-lab/lineitem_partition/';
 ```sql
 ALTER TABLE  "spectrum"."lineitem_parq_part_1" 
 ADD PARTITION(saledate='1992-01-02') 
-LOCATION 's3://awspsa-redshift-lab/lineitem_partition/l_shipdate=1992-01-02/';
+LOCATION 's3://awspsa-redshift-lab/labdata/lineitem_partition/l_shipdate=1992-01-02/';
 
 ALTER TABLE  "spectrum"."lineitem_parq_part_1" 
 ADD PARTITION(saledate='1992-01-03') 
-LOCATION 's3://awspsa-redshift-lab/lineitem_partition/l_shipdate=1992-01-03/';
+LOCATION 's3://awspsa-redshift-lab/labdata/lineitem_partition/l_shipdate=1992-01-03/';
 ```
 #### List the partitions of the table
 
@@ -457,7 +457,8 @@ FROM "spectrum"."lineitem_parq_part_1";
 
 ### How to check whether "[partition-pruning](https://aws.amazon.com/blogs/big-data/10-best-practices-for-amazon-redshift-spectrum/)" is in effect?
 You can use the following SQL to analyze the effectiveness of partition pruning. If the query touches only a few partitions, you can verify if everything behaves as expected:
-```SELECT query, segment,
+```sql
+SELECT query, segment,
        MIN(starttime) AS starttime,
        MAX(endtime) AS endtime,
        datediff(ms,MIN(starttime),MAX(endtime)) AS dur_ms,
@@ -486,7 +487,7 @@ starttime timestamp
 
 ```sql
 copy event from 's3://awssampledbuswest2/tickit/allevents_pipe.txt' 
-iam_role 'arn:aws:iam::<Your-AWS-Account-Number>:role/rsLabGroupPolicy-SpectrumRole'
+iam_role 'arn:aws:iam::<Your-AWS-Account-Number>:role/rslab-SpectrumRole'
 delimiter '|' timeformat 'YYYY-MM-DD HH:MI:SS' region 'us-west-2';
 ```
 #### Create External table SALES in Data Catalog.
@@ -506,7 +507,7 @@ saletime timestamp
 row format delimited
 fields terminated by '\t'
 stored as textfile
-location 's3://awspsa-redshift-lab/sales/'
+location 's3://awspsa-redshift-lab/labdata/sales/'
 table properties ('numRows'='172000');
 ```
 
@@ -568,7 +569,7 @@ CREATE external table "spectrum"."lineitem_csv"
 row format delimited
 fields terminated by '|'
 stored as textfile
-LOCATION 's3://awspsa-redshift-lab/lineitem_csv/'
+LOCATION 's3://awspsa-redshift-lab/labdata/lineitem_csv/'
 ;
 ```
 ### Create Parquet format table
@@ -593,7 +594,7 @@ CREATE external table "spectrum"."lineitem_parq"
  L_COMMENT VARCHAR(128)
 )
 stored as PARQUET
-LOCATION 's3://awspsa-redshift-lab/lineitem_parq2/'
+LOCATION 's3://awspsa-redshift-lab/labdata/lineitem_parq2/'
 ;
 ```
 
@@ -619,7 +620,7 @@ CREATE external table "spectrum"."lineitem_parq_part"
 )
 partitioned by (L_SHIPDATE VARCHAR(128))
 stored as PARQUET
-LOCATION 's3://awspsa-redshift-lab/lineitem_partition/'
+LOCATION 's3://awspsa-redshift-lab/labdata/lineitem_partition/'
 ;
 ```
 
